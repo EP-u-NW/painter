@@ -23,4 +23,4 @@ For a full example take a look at the [example project](https://github.com/epnw/
 Here is a short recording showing it.
 Note that the color picker is an external dependency which is only required for the example.
 
-[demo](https://raw.githubusercontent.com/epnw/painter/master/example/demo.gif)
+![demo!](https://raw.githubusercontent.com/epnw/painter/master/example/demo.gif)
