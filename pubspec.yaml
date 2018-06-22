@@ -1,0 +1,12 @@
+name: painter
+description: A simple widget to paint with your fingers. Supports setting a background color, undo and export to png!
+version: 0.3.1
+author: EPNW <prokopwieler.hardundsoftware@gmail.com>
+homepage: https://github.com/epnw/painter
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+environment:
+  sdk: ">=2.0.0-dev.28.0 <3.0.0"
