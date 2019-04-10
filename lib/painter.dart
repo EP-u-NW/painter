@@ -172,9 +172,10 @@ class PictureDetails{
   }
 }
 
-class PainterController extends ChangeNotifier{
-  Color _drawColor=new Color.fromARGB(255, 0, 0, 0);
-  Color _backgroundColor=new Color.fromARGB(255, 255, 255, 255);
+class PainterController extends ChangeNotifier {
+  Color _drawColor = new Color.fromARGB(255, 0, 0, 0);
+  Color _backgroundColor = new Color.fromARGB(255, 255, 255, 255);
+  Decoration _decorationForPainter;
 
   double _thickness=1.0;
   PictureDetails _cached;
@@ -203,12 +204,17 @@ class PainterController extends ChangeNotifier{
     _updatePaint();
   }
 
-  void _updatePaint(){
-    Paint paint=new Paint();
-    paint.color=drawColor;
-    paint.style=PaintingStyle.stroke;
-    paint.strokeWidth=thickness;
-    _pathHistory.currentPaint=paint;
+  Decoration get decorationForPainter => _decorationForPainter;
+  set decorationForPainter(Decoration decoration) {
+    _decorationForPainter = decoration;
+  }
+
+  void _updatePaint() {
+    Paint paint = new Paint();
+    paint.color = drawColor;
+    paint.style = PaintingStyle.stroke;
+    paint.strokeWidth = thickness;
+    _pathHistory.currentPaint = paint;
     _pathHistory.setBackgroundColor(backgroundColor);
     notifyListeners();
   }
