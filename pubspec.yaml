@@ -1,6 +1,6 @@
 name: painter
 description: A simple widget to paint with your fingers. Supports setting a background color, undo and export to png!
-version: 0.3.1
+version: 0.3.2
 author: EPNW <prokopwieler.hardundsoftware@gmail.com>
 homepage: https://github.com/epnw/painter
 
