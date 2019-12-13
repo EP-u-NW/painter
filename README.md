@@ -9,7 +9,7 @@ The widget supports:
 - Changing the thickness of lines you draw
 - Exporting your painting as png
 - Undo drawing a line
-- Clearing the hole drawing
+- Clearing the whole drawing
 
 ## Some Notes
 
