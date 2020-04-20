@@ -18,14 +18,12 @@ class Painter extends StatefulWidget {
 
 class _PainterState extends State<Painter> {
 
-  bool _eraseMode;
   bool _finished;
 
   @override
   void initState() {
     super.initState();
     _finished=false;
-    _eraseMode=false;
     widget.painterController._widgetFinish=_finish;
   }
 
