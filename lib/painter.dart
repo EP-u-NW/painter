@@ -147,10 +147,12 @@ class _PathHistory{
   }
 
   void draw(Canvas canvas,Size size){
+    canvas.saveLayer(Offset.zero & size, Paint());
     canvas.drawRect(new Rect.fromLTWH(0.0, 0.0, size.width, size.height), _backgroundPaint);
     for(MapEntry<Path,Paint> path in _paths){
       canvas.drawPath(path.key,path.value);
     }
+    canvas.restore();
   }
 }
 
@@ -176,6 +178,7 @@ class PictureDetails{
 class PainterController extends ChangeNotifier{
   Color _drawColor=new Color.fromARGB(255, 0, 0, 0);
   Color _backgroundColor=new Color.fromARGB(255, 255, 255, 255);
+  bool _eraseMode=false;
 
   double _thickness=1.0;
   PictureDetails _cached;
@@ -184,6 +187,14 @@ class PainterController extends ChangeNotifier{
 
   PainterController(){
     _pathHistory=new _PathHistory();
+  }
+
+  // setter for erase mode.
+  // Note: Works only for transparent background
+  bool get eraseMode => _eraseMode;
+  set eraseMode(bool enabled) {
+    _eraseMode = enabled;
+    _updatePaint();
   }
 
   Color get drawColor => _drawColor;
@@ -206,7 +217,12 @@ class PainterController extends ChangeNotifier{
 
   void _updatePaint(){
     Paint paint=new Paint();
-    paint.color=drawColor;
+    if (_eraseMode) {
+      paint.color=Color.fromARGB(0, 255, 0, 0);
+      paint.blendMode = BlendMode.clear;
+    } else {
+      paint.color=drawColor;
+    }
     paint.style=PaintingStyle.stroke;
     paint.strokeWidth=thickness;
     _pathHistory.currentPaint=paint;
