@@ -10,6 +10,8 @@ The widget supports:
 - Exporting your painting as png
 - Undo drawing a line
 - Clearing the whole drawing
+- Check if anything was drawn at all (using `PainterController.isEmpty')
+- Erase Mode
 
 ## Some Notes
 
