@@ -38,8 +38,11 @@ class _PainterState extends State<Painter> {
   Widget build(BuildContext context) {
     Widget child = new CustomPaint(
       willChange: true,
-      painter: new _PainterPainter(widget.painterController._pathHistory,
-          repaint: widget.painterController),
+      painter: new _PainterPainter(
+        widget.painterController._pathHistory,
+        widget.painterController.bgImage,
+        repaint: widget.painterController,
+      ),
     );
     child = new ClipRect(child: child);
     if (!_finished) {
@@ -79,12 +82,14 @@ class _PainterState extends State<Painter> {
 
 class _PainterPainter extends CustomPainter {
   final _PathHistory _path;
+  final Image bgImage;
 
-  _PainterPainter(this._path, {Listenable repaint}) : super(repaint: repaint);
+  _PainterPainter(this._path, this.bgImage, {Listenable repaint})
+      : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
-    _path.draw(canvas, size);
+    _path.draw(canvas, size, bgImage);
   }
 
   @override
@@ -143,14 +148,30 @@ class _PathHistory {
     _inDrag = false;
   }
 
-  void draw(Canvas canvas, Size size) {
+  void draw(Canvas canvas, Size size, Image image) {
     canvas.saveLayer(Offset.zero & size, Paint());
     for (MapEntry<Path, Paint> path in _paths) {
       Paint p = path.value;
       canvas.drawPath(path.key, p);
     }
-    canvas.drawRect(
-        new Rect.fromLTWH(0.0, 0.0, size.width, size.height), _backgroundPaint);
+
+    if(image != null) {
+      final outputRect =
+      Rect.fromPoints(Offset.zero, Offset(size.width, size.height));
+      final Size imageSize =
+      Size(image.width.toDouble(), image.height.toDouble());
+      final FittedSizes sizes =
+      applyBoxFit(BoxFit.contain, imageSize, outputRect.size);
+      final Rect inputSubrect =
+      Alignment.center.inscribe(sizes.source, Offset.zero & imageSize);
+      final Rect outputSubrect =
+      Alignment.center.inscribe(sizes.destination, outputRect);
+      canvas.drawImageRect(
+          image, inputSubrect, outputSubrect, _backgroundPaint);
+    }else {
+      canvas.drawRect(
+          new Rect.fromLTWH(0.0, 0.0, size.width, size.height), _backgroundPaint);
+    }
     canvas.restore();
   }
 }
@@ -180,6 +201,7 @@ class PainterController extends ChangeNotifier {
   Color _drawColor = new Color.fromARGB(255, 0, 0, 0);
   Color _backgroundColor = new Color.fromARGB(255, 255, 255, 255);
   bool _eraseMode = false;
+  Image bgImage = null;
 
   double _thickness = 1.0;
   PictureDetails _cached;
@@ -255,15 +277,15 @@ class PainterController extends ChangeNotifier {
 
   PictureDetails finish() {
     if (!isFinished()) {
-      _cached = _render(_widgetFinish());
+      _cached = _render(_widgetFinish(), bgImage);
     }
     return _cached;
   }
 
-  PictureDetails _render(Size size) {
+  PictureDetails _render(Size size, Image image) {
     PictureRecorder recorder = new PictureRecorder();
     Canvas canvas = new Canvas(recorder);
-    _pathHistory.draw(canvas, size);
+    _pathHistory.draw(canvas, size, image);
     return new PictureDetails(
         recorder.endRecording(), size.width.floor(), size.height.floor());
   }

@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:painter/painter.dart';
 
@@ -24,6 +27,8 @@ class ExamplePage extends StatefulWidget {
 class _ExamplePageState extends State<ExamplePage> {
   bool _finished;
   PainterController _controller;
+  ui.Image bgImage;
+  bool isImageLoaded = true;
 
   @override
   void initState() {
@@ -32,10 +37,30 @@ class _ExamplePageState extends State<ExamplePage> {
     _controller = _newController();
   }
 
+  Future<Null> loadImage() async {
+    setState(() {
+      isImageLoaded = false;
+    });
+    final ByteData data = await rootBundle.load('images/dummy.jpg');
+    final Completer<ui.Image> completer = new Completer();
+    ui.decodeImageFromList(new Uint8List.view(data.buffer), (ui.Image img) {
+      setState(() {
+        bgImage = img;
+        _finished = false;
+      });
+      _controller = _newController();
+      setState(() {
+        isImageLoaded = true;
+      });
+      return completer.complete(img);
+    });
+  }
+
   PainterController _newController() {
     PainterController controller = new PainterController();
     controller.thickness = 5.0;
     controller.backgroundColor = Colors.green;
+    controller.bgImage = bgImage;
     return controller;
   }
 
@@ -87,9 +112,18 @@ class _ExamplePageState extends State<ExamplePage> {
             child: new DrawBar(_controller),
             preferredSize: new Size(MediaQuery.of(context).size.width, 30.0),
           )),
-      body: new Center(
-          child: new AspectRatio(
-              aspectRatio: 1.0, child: new Painter(_controller))),
+      body: isImageLoaded
+          ? new Center(
+              child: new AspectRatio(
+                  aspectRatio: 1.0, child: new Painter(_controller)))
+          : new Center(child: new Text('loading')),
+      floatingActionButton: new RaisedButton(
+        onPressed: () {
+          loadImage();
+        },
+        child: new Text('Set background image'),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
