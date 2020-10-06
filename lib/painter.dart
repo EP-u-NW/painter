@@ -95,7 +95,7 @@ class _PainterPainter extends CustomPainter {
 
 class _PathHistory {
   List<MapEntry<Path, Paint>> _paths;
-  List<MapEntry<Path, Paint>> _deletedPaths;
+  List<MapEntry<Path, Paint>> _deletedPaths = [];
   Paint currentPaint;
   Paint _backgroundPaint;
   bool _inDrag;
@@ -114,9 +114,7 @@ class _PathHistory {
 
   void undo() {
     if (!_inDrag) {
-      _paths.length == 1
-          ? _deletedPaths.add(_paths.first)
-          : _deletedPaths.add(_paths.last);
+      _deletedPaths.add(_paths.last);
       _paths.removeLast();
     }
   }
