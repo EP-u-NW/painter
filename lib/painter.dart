@@ -114,15 +114,19 @@ class _PathHistory {
 
   void undo() {
     if (!_inDrag) {
-      _deletedPaths.add(_paths.last);
+      _paths.length == 1
+          ? _deletedPaths.add(_paths.first)
+          : _deletedPaths.add(_paths.last);
       _paths.removeLast();
     }
   }
 
   void redo() {
     if (!_inDrag) {
-      _paths.add(_deletedPaths.last);
-      _deletedPaths.removeLast();
+      if (_deletedPaths.isNotEmpty) {
+        _paths.add(_deletedPaths.last);
+        _deletedPaths.removeLast();
+      }
     }
   }
 
