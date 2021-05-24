@@ -1,14 +1,18 @@
+/// Provides a widget and an associated controller for simple painting using touch.
 library painter;
 
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/material.dart' hide Image;
 import 'package:flutter/widgets.dart' hide Image;
 
+/// A very simple widget that supports drawing using touch.
 class Painter extends StatefulWidget {
   final PainterController painterController;
 
+  /// Creates an instance of this widget that operates on top of the supplied [PainterController].
   Painter(PainterController painterController)
       : this.painterController = painterController,
         super(key: new ValueKey<PainterController>(painterController));
@@ -18,12 +22,11 @@ class Painter extends StatefulWidget {
 }
 
 class _PainterState extends State<Painter> {
-  bool _finished;
+  bool _finished = false;
 
   @override
   void initState() {
     super.initState();
-    _finished = false;
     widget.painterController._widgetFinish = _finish;
   }
 
@@ -31,7 +34,7 @@ class _PainterState extends State<Painter> {
     setState(() {
       _finished = true;
     });
-    return context.size;
+    return context.size ?? const Size(0, 0);
   }
 
   @override
@@ -80,7 +83,7 @@ class _PainterState extends State<Painter> {
 class _PainterPainter extends CustomPainter {
   final _PathHistory _path;
 
-  _PainterPainter(this._path, {Listenable repaint}) : super(repaint: repaint);
+  _PainterPainter(this._path, {Listenable? repaint}) : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -101,11 +104,14 @@ class _PathHistory {
 
   bool get isEmpty => _paths.isEmpty || (_paths.length == 1 && _inDrag);
 
-  _PathHistory() {
-    _paths = new List<MapEntry<Path, Paint>>();
-    _inDrag = false;
-    _backgroundPaint = new Paint()..blendMode = BlendMode.dstOver;
-  }
+  _PathHistory()
+      : _paths = <MapEntry<Path, Paint>>[],
+        _inDrag = false,
+        _backgroundPaint = new Paint()..blendMode = BlendMode.dstOver,
+        currentPaint = new Paint()
+          ..color = Colors.black
+          ..strokeWidth = 1.0
+          ..style = PaintingStyle.fill;
 
   void setBackgroundColor(Color backgroundColor) {
     _backgroundPaint.color = backgroundColor;
@@ -155,66 +161,88 @@ class _PathHistory {
   }
 }
 
-typedef PictureDetails PictureCallback();
-
+/// Container that holds the size of a finished drawing and the drawed data as [Picture].
 class PictureDetails {
+  /// The drawings data as [Picture].
   final Picture picture;
+
+  /// The width of the drawing.
   final int width;
+
+  /// The height of the drawing.
   final int height;
 
+  /// Creates an immutable instance with the given drawing information.
   const PictureDetails(this.picture, this.width, this.height);
 
-  Future<Image> toImage() {
-    return picture.toImage(width, height);
-  }
+  /// Converts the [picture] to an [Image].
+  Future<Image> toImage() => picture.toImage(width, height);
 
+  /// Converts the [picture] to a PNG and returns the bytes of the PNG.
+  ///
+  /// This might throw a [FlutterError], if flutter is not able to convert
+  /// the intermediate [Image] to a PNG.
   Future<Uint8List> toPNG() async {
-    final image = await toImage();
-    return (await image.toByteData(format: ImageByteFormat.png))
-        .buffer
-        .asUint8List();
+    Image image = await toImage();
+    ByteData? data = await image.toByteData(format: ImageByteFormat.png);
+    if (data != null) {
+      return data.buffer.asUint8List();
+    } else {
+      throw new FlutterError('Flutter failed to convert an Image to bytes!');
+    }
   }
 }
 
+/// Used with a [Painter] widget to control drawing.
 class PainterController extends ChangeNotifier {
   Color _drawColor = new Color.fromARGB(255, 0, 0, 0);
   Color _backgroundColor = new Color.fromARGB(255, 255, 255, 255);
   bool _eraseMode = false;
 
   double _thickness = 1.0;
-  PictureDetails _cached;
+  PictureDetails? _cached;
   _PathHistory _pathHistory;
-  ValueGetter<Size> _widgetFinish;
+  ValueGetter<Size>? _widgetFinish;
 
-  PainterController() {
-    _pathHistory = new _PathHistory();
-  }
+  /// Creates a new instance for the use in a [Painter] widget.
+  PainterController() : _pathHistory = new _PathHistory();
 
+  /// Returns true if nothing has been drawn yet.
   bool get isEmpty => _pathHistory.isEmpty;
 
+  /// Returns true if the the [PainterController] is currently in erase mode,
+  /// false otherwise.
   bool get eraseMode => _eraseMode;
 
+  /// If set to true, erase mode is enabled, until this is called again with
+  /// false to disable erase mode.
   set eraseMode(bool enabled) {
     _eraseMode = enabled;
     _updatePaint();
   }
 
+  /// Retrieves the current draw color.
   Color get drawColor => _drawColor;
 
+  /// Sets the draw color.
   set drawColor(Color color) {
     _drawColor = color;
     _updatePaint();
   }
 
+  /// Retrieves the current background color.
   Color get backgroundColor => _backgroundColor;
 
+  /// Updates the background color.
   set backgroundColor(Color color) {
     _backgroundColor = color;
     _updatePaint();
   }
 
+  /// Returns the current thickness that is used for drawing.
   double get thickness => _thickness;
 
+  /// Sets the draw thickness..
   set thickness(double t) {
     _thickness = t;
     _updatePaint();
@@ -227,6 +255,7 @@ class PainterController extends ChangeNotifier {
       paint.color = Color.fromARGB(0, 255, 0, 0);
     } else {
       paint.color = drawColor;
+      paint.blendMode = BlendMode.srcOver;
     }
     paint.style = PaintingStyle.stroke;
     paint.strokeWidth = thickness;
@@ -235,6 +264,8 @@ class PainterController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Undoes the last drawing action (but not a background color change).
+  /// If the picture is already finished, this is a no-op and does nothing.
   void undo() {
     if (!isFinished()) {
       _pathHistory.undo();
@@ -246,6 +277,8 @@ class PainterController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Deletes all drawing actions, but does not affect the background.
+  /// If the picture is already finished, this is a no-op and does nothing.
   void clear() {
     if (!isFinished()) {
       _pathHistory.clear();
@@ -253,21 +286,39 @@ class PainterController extends ChangeNotifier {
     }
   }
 
+  /// Finishes drawing and returns the rendered [PictureDetails] of the drawing.
+  /// The drawing is cached and on subsequent calls to this method, the cached
+  /// drawing is returned.
+  ///
+  /// This might throw a [StateError] if this PainterController is not attached
+  /// to a widget, or the associated widget's [Size.isEmpty].
   PictureDetails finish() {
     if (!isFinished()) {
-      _cached = _render(_widgetFinish());
+      if (_widgetFinish != null) {
+        _cached = _render(_widgetFinish!());
+      } else {
+        throw new StateError(
+            'Called finish on a PainterController that was not connected to a widget yet!');
+      }
     }
-    return _cached;
+    return _cached!;
   }
 
   PictureDetails _render(Size size) {
-    PictureRecorder recorder = new PictureRecorder();
-    Canvas canvas = new Canvas(recorder);
-    _pathHistory.draw(canvas, size);
-    return new PictureDetails(
-        recorder.endRecording(), size.width.floor(), size.height.floor());
+    if (size.isEmpty) {
+      throw new StateError('Tried to render a picture with an invalid size!');
+    } else {
+      PictureRecorder recorder = new PictureRecorder();
+      Canvas canvas = new Canvas(recorder);
+      _pathHistory.draw(canvas, size);
+      return new PictureDetails(
+          recorder.endRecording(), size.width.floor(), size.height.floor());
+    }
   }
 
+  /// Returns true if this drawing is finished.
+  ///
+  /// Trying to modify a finished drawing is a no-op.
   bool isFinished() {
     return _cached != null;
   }

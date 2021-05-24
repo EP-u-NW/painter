@@ -22,17 +22,15 @@ class ExamplePage extends StatefulWidget {
 }
 
 class _ExamplePageState extends State<ExamplePage> {
-  bool _finished;
-  PainterController _controller;
+  bool _finished = false;
+  PainterController _controller = _newController();
 
   @override
   void initState() {
     super.initState();
-    _finished = false;
-    _controller = _newController();
   }
 
-  PainterController _newController() {
+  static PainterController _newController() {
     PainterController controller = new PainterController();
     controller.thickness = 5.0;
     controller.backgroundColor = Colors.green;
@@ -114,9 +112,8 @@ class _ExamplePageState extends State<ExamplePage> {
                     if (snapshot.hasError) {
                       return new Text('Error: ${snapshot.error}');
                     } else {
-                      return Image.memory(snapshot.data);
+                      return Image.memory(snapshot.data!);
                     }
-                    break;
                   default:
                     return new Container(
                         child: new FractionallySizedBox(

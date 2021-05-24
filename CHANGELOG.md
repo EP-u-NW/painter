@@ -1,3 +1,9 @@
+## [2.0.0] - 24.05.2021
+
+* Migrated to null safety
+* Provided documentation
+* Fixed minor issues
+
 ## [0.4.0] - 22.04.2020
 
 * Updated example

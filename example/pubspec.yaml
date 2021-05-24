@@ -1,17 +1,18 @@
 name: example
 description: A example to demonstrate painter.
-author: EPNW <prokopwieler.hardundsoftware@gmail.com>
-homepage: https://github.com/epnw/painter
+version: 2.0.0
+repository: https://github.com/EPNW/painter
 
 dependencies:
   flutter:
     sdk: flutter
   painter:
     path: ../
-  flutter_colorpicker: any
+  flutter_colorpicker: ^0.4.0
 
 flutter:
   uses-material-design: true
 
 environment:
-  sdk: ">=2.5.0 <3.0.0"
+  sdk: ">=2.12.0 <3.0.0"
+  flutter: ">=2.0.0"
