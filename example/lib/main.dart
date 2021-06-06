@@ -34,6 +34,8 @@ class _ExamplePageState extends State<ExamplePage> {
     PainterController controller = new PainterController();
     controller.thickness = 5.0;
     controller.backgroundColor = Colors.green;
+    controller.backgroundImage = Image.network(
+        'https://cdn-images-1.medium.com/max/1200/1*5-aoK8IBmXve5whBQM90GA.png');
     return controller;
   }
 

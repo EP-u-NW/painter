@@ -5,7 +5,9 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/material.dart' as background show Image;
 import 'package:flutter/material.dart' hide Image;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart' hide Image;
 
 /// A very simple widget that supports drawing using touch.
@@ -23,11 +25,13 @@ class Painter extends StatefulWidget {
 
 class _PainterState extends State<Painter> {
   bool _finished = false;
+  final GlobalKey _globalKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     widget.painterController._widgetFinish = _finish;
+    widget.painterController._globalKey = _globalKey;
   }
 
   Size _finish() {
@@ -51,6 +55,16 @@ class _PainterState extends State<Painter> {
         onPanStart: _onPanStart,
         onPanUpdate: _onPanUpdate,
         onPanEnd: _onPanEnd,
+      );
+    }
+    if (widget.painterController.backgroundImage != null) {
+      child = RepaintBoundary(
+        key: _globalKey,
+        child: Stack(
+          alignment: FractionalOffset.center,
+          fit: StackFit.expand,
+          children: <Widget>[widget.painterController.backgroundImage!, child],
+        ),
       );
     }
     return new Container(
@@ -172,11 +186,16 @@ class PictureDetails {
   /// The height of the drawing.
   final int height;
 
+  final RenderRepaintBoundary? bgImage;
+
   /// Creates an immutable instance with the given drawing information.
-  const PictureDetails(this.picture, this.width, this.height);
+  const PictureDetails(this.picture, this.bgImage, this.width, this.height);
 
   /// Converts the [picture] to an [Image].
   Future<Image> toImage() => picture.toImage(width, height);
+
+  /// Converts the [bgImage] to an [Image].
+  Future<Image> toImageWithBg() => bgImage!.toImage();
 
   /// Converts the [picture] to a PNG and returns the bytes of the PNG.
   ///
@@ -184,6 +203,9 @@ class PictureDetails {
   /// the intermediate [Image] to a PNG.
   Future<Uint8List> toPNG() async {
     Image image = await toImage();
+    if (bgImage != null) {
+      image = await toImageWithBg();
+    }
     ByteData? data = await image.toByteData(format: ImageByteFormat.png);
     if (data != null) {
       return data.buffer.asUint8List();
@@ -198,11 +220,13 @@ class PainterController extends ChangeNotifier {
   Color _drawColor = new Color.fromARGB(255, 0, 0, 0);
   Color _backgroundColor = new Color.fromARGB(255, 255, 255, 255);
   bool _eraseMode = false;
+  background.Image? _bgimage;
 
   double _thickness = 1.0;
   PictureDetails? _cached;
   _PathHistory _pathHistory;
   ValueGetter<Size>? _widgetFinish;
+  late GlobalKey _globalKey;
 
   /// Creates a new instance for the use in a [Painter] widget.
   PainterController() : _pathHistory = new _PathHistory();
@@ -239,6 +263,15 @@ class PainterController extends ChangeNotifier {
     _updatePaint();
   }
 
+  /// Retrieves the current background image.
+  background.Image? get backgroundImage => _bgimage;
+
+  /// Updates the background image.
+  set backgroundImage(background.Image? image) {
+    _bgimage = image;
+    _updatePaint();
+  }
+
   /// Returns the current thickness that is used for drawing.
   double get thickness => _thickness;
 
@@ -260,7 +293,11 @@ class PainterController extends ChangeNotifier {
     paint.style = PaintingStyle.stroke;
     paint.strokeWidth = thickness;
     _pathHistory.currentPaint = paint;
-    _pathHistory.setBackgroundColor(backgroundColor);
+    if (_bgimage != null) {
+      _pathHistory.setBackgroundColor(const Color(0x00000000));
+    } else {
+      _pathHistory.setBackgroundColor(backgroundColor);
+    }
     notifyListeners();
   }
 
@@ -311,8 +348,27 @@ class PainterController extends ChangeNotifier {
       PictureRecorder recorder = new PictureRecorder();
       Canvas canvas = new Canvas(recorder);
       _pathHistory.draw(canvas, size);
-      return new PictureDetails(
-          recorder.endRecording(), size.width.floor(), size.height.floor());
+      if (_bgimage != null) {
+        RenderRepaintBoundary boundary = _globalKey.currentContext!
+            .findRenderObject() as RenderRepaintBoundary;
+        return PictureDetails(recorder.endRecording(), boundary,
+            size.width.floor(), size.height.floor());
+      } else {
+        return PictureDetails(recorder.endRecording(), null, size.width.floor(),
+            size.height.floor());
+      }
+    }
+  }
+
+  Future<Uint8List?> exportAsPNGBytes() async {
+    try {
+      RenderRepaintBoundary boundary = _globalKey.currentContext!
+          .findRenderObject() as RenderRepaintBoundary;
+      Image image = await boundary.toImage();
+      ByteData? byteData = await image.toByteData(format: ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      return null;
     }
   }
 
