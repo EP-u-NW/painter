@@ -198,6 +198,7 @@ class PainterController extends ChangeNotifier {
   Color _drawColor = new Color.fromARGB(255, 0, 0, 0);
   Color _backgroundColor = new Color.fromARGB(255, 255, 255, 255);
   bool _eraseMode = false;
+  bool _rounded = false;
 
   double _thickness = 1.0;
   PictureDetails? _cached;
@@ -218,6 +219,15 @@ class PainterController extends ChangeNotifier {
   /// false to disable erase mode.
   set eraseMode(bool enabled) {
     _eraseMode = enabled;
+    _updatePaint();
+  }
+
+  /// Whether line caps and joins will be rounded.
+  bool get rounded => _rounded;
+
+  /// If set to true, line caps and joins will be rounded.
+  set rounded(bool enabled) {
+    _rounded = enabled;
     _updatePaint();
   }
 
@@ -259,6 +269,10 @@ class PainterController extends ChangeNotifier {
     }
     paint.style = PaintingStyle.stroke;
     paint.strokeWidth = thickness;
+    if (_rounded) {
+      paint.strokeCap = StrokeCap.round;
+      paint.strokeJoin = StrokeJoin.round;
+    }
     _pathHistory.currentPaint = paint;
     _pathHistory.setBackgroundColor(backgroundColor);
     notifyListeners();
