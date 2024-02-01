@@ -9,6 +9,7 @@ The widget supports:
 - Changing the thickness of lines you draw
 - Exporting your painting as png
 - Undo drawing a line
+- Restore drawing a line
 - Clearing the whole drawing
 - Check if anything was drawn at all (using `PainterController.isEmpty')
 - Erase Mode

@@ -6,14 +6,14 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart' hide Image;
-import 'package:flutter/widgets.dart' hide Image;
 
 /// A very simple widget that supports drawing using touch.
 class Painter extends StatefulWidget {
   final PainterController painterController;
+  final ValueChanged<bool> isDrawing;
 
   /// Creates an instance of this widget that operates on top of the supplied [PainterController].
-  Painter(PainterController painterController)
+  Painter(PainterController painterController, {required this.isDrawing})
       : this.painterController = painterController,
         super(key: new ValueKey<PainterController>(painterController));
 
@@ -64,6 +64,7 @@ class _PainterState extends State<Painter> {
     Offset pos = (context.findRenderObject() as RenderBox)
         .globalToLocal(start.globalPosition);
     widget.painterController._pathHistory.add(pos);
+    widget.isDrawing(true);
     widget.painterController._notifyListeners();
   }
 
@@ -76,6 +77,7 @@ class _PainterState extends State<Painter> {
 
   void _onPanEnd(DragEndDetails end) {
     widget.painterController._pathHistory.endCurrent();
+    widget.isDrawing(false);
     widget.painterController._notifyListeners();
   }
 }
@@ -101,13 +103,18 @@ class _PathHistory {
   Paint currentPaint;
   Paint _backgroundPaint;
   bool _inDrag;
+  List<MapEntry<Path, Paint>> _undoPaths;
 
   bool get isEmpty => _paths.isEmpty || (_paths.length == 1 && _inDrag);
+
+  bool get isRestoreEmpty =>
+      _undoPaths.isEmpty || (_undoPaths.length == 1 && _inDrag);
 
   _PathHistory()
       : _paths = <MapEntry<Path, Paint>>[],
         _inDrag = false,
         _backgroundPaint = new Paint()..blendMode = BlendMode.dstOver,
+        _undoPaths = <MapEntry<Path, Paint>>[],
         currentPaint = new Paint()
           ..color = Colors.black
           ..strokeWidth = 1.0
@@ -119,7 +126,19 @@ class _PathHistory {
 
   void undo() {
     if (!_inDrag) {
-      _paths.removeLast();
+      if (!isEmpty) {
+        _undoPaths.add(_paths.last);
+        _paths.removeLast();
+      }
+    }
+  }
+
+  void restore() {
+    if (!_inDrag) {
+      if (!isRestoreEmpty) {
+        _paths.add(_undoPaths.last);
+        _undoPaths.removeLast();
+      }
     }
   }
 
@@ -210,6 +229,9 @@ class PainterController extends ChangeNotifier {
   /// Returns true if nothing has been drawn yet.
   bool get isEmpty => _pathHistory.isEmpty;
 
+  /// Return true if there is nothing to restore.
+  bool get isRestoreEmpty => _pathHistory.isRestoreEmpty;
+
   /// Returns true if the the [PainterController] is currently in erase mode,
   /// false otherwise.
   bool get eraseMode => _eraseMode;
@@ -269,6 +291,13 @@ class PainterController extends ChangeNotifier {
   void undo() {
     if (!isFinished()) {
       _pathHistory.undo();
+      notifyListeners();
+    }
+  }
+
+  void restore() {
+    if (!isFinished()) {
+      _pathHistory.restore();
       notifyListeners();
     }
   }
