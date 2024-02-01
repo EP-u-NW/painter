@@ -10,9 +10,10 @@ import 'package:flutter/material.dart' hide Image;
 /// A very simple widget that supports drawing using touch.
 class Painter extends StatefulWidget {
   final PainterController painterController;
+  final ValueChanged<bool> isDrawing;
 
   /// Creates an instance of this widget that operates on top of the supplied [PainterController].
-  Painter(PainterController painterController)
+  Painter(PainterController painterController, {required this.isDrawing})
       : this.painterController = painterController,
         super(key: new ValueKey<PainterController>(painterController));
 
@@ -63,6 +64,7 @@ class _PainterState extends State<Painter> {
     Offset pos = (context.findRenderObject() as RenderBox)
         .globalToLocal(start.globalPosition);
     widget.painterController._pathHistory.add(pos);
+    widget.isDrawing(true);
     widget.painterController._notifyListeners();
   }
 
@@ -75,6 +77,7 @@ class _PainterState extends State<Painter> {
 
   void _onPanEnd(DragEndDetails end) {
     widget.painterController._pathHistory.endCurrent();
+    widget.isDrawing(false);
     widget.painterController._notifyListeners();
   }
 }
